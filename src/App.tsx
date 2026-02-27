@@ -1,23 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Send,
-  Mic,
-  Flame,
-  Play,
-  Square,
-  Stethoscope,
-  MessageSquare,
-  Phone,
-  PhoneOff,
-  ListTodo,
-  CheckCircle,
-  XCircle,
-  Trophy,
-  ArrowRight,
-  BrainCircuit
-} from "lucide-react";
 import { GoogleGenAI, LiveServerMessage, Modality, Type } from "@google/genai";
-import ReactMarkdown from "react-markdown";
+import { AnimatePresence } from "motion/react";
+import { Header } from "./components/Header";
+import { BottomNav } from "./components/BottomNav";
+import { ChatTab } from "./components/ChatTab";
+import { VoiceTab } from "./components/VoiceTab";
+import { PracticeTab } from "./components/PracticeTab";
 
 const apiKey = process.env.GEMINI_API_KEY || "missing_api_key";
 const ai = new GoogleGenAI({ apiKey });
@@ -486,290 +474,56 @@ export default function App() {
     <div className="flex justify-center h-[100dvh] bg-[#111318] text-[#E2E2E2] font-sans overflow-hidden">
       <div className="w-full max-w-md flex flex-col relative shadow-2xl sm:border-x sm:border-[#1E2025] bg-[#111318]">
         
-        {/* Material You Header */}
-        <header className="px-5 pt-6 pb-4 flex flex-col gap-4 bg-[#111318] z-20 shrink-0">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#93D7B7] flex items-center justify-center">
-                <Stethoscope className="w-4 h-4 text-[#003822]" />
-              </div>
-              <h1 className="text-2xl font-normal tracking-tight">Atlas</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="bg-[#334B38] text-[#A8E5B6] px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5">
-                <Flame className="w-4 h-4" /> {streak}
-              </div>
-            </div>
-          </div>
-          
-          {/* Progress Bar */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between text-xs font-medium text-[#C4C7C5]">
-              <span>Level {level}</span>
-              <span>{xp} / {xpToNextLevel} XP</span>
-            </div>
-            <div className="h-2.5 bg-[#1E2025] rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-[#93D7B7] rounded-full transition-all duration-700 ease-out" 
-                style={{ width: `${Math.min((xp / xpToNextLevel) * 100, 100)}%` }} 
-              />
-            </div>
-          </div>
-        </header>
+        <Header level={level} xp={xp} xpToNextLevel={xpToNextLevel} streak={streak} />
 
         {/* Main Content Area */}
         <div className="flex-1 overflow-hidden relative">
-          
-          {/* CHAT TAB */}
-          {tab === "chat" && (
-            <div className="absolute inset-0 flex flex-col">
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 scroll-smooth">
-                {messages.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[85%] rounded-[24px] p-4 ${
-                      msg.role === "user"
-                        ? "bg-[#93D7B7] text-[#003822] rounded-br-[4px]"
-                        : "bg-[#1E2025] text-[#E2E2E2] rounded-bl-[4px]"
-                    }`}>
-                      <div className={`prose prose-sm max-w-none prose-p:leading-relaxed ${msg.role === 'user' ? 'prose-p:text-[#003822]' : 'prose-invert prose-p:text-[#E2E2E2]'}`}>
-                        <ReactMarkdown>{msg.text}</ReactMarkdown>
-                      </div>
-                      {msg.role === "model" && (
-                        <div className="mt-2 flex items-center gap-4 pt-2">
-                          <button
-                            onClick={() => speak(msg.text)}
-                            className="text-[#C4C7C5] hover:text-[#93D7B7] transition-colors flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider"
-                          >
-                            <Play className="w-3 h-3" /> Listen
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-[#1E2025] rounded-[24px] rounded-bl-[4px] p-4 flex gap-1.5 items-center">
-                      <div className="w-1.5 h-1.5 bg-[#C4C7C5] rounded-full animate-bounce"></div>
-                      <div className="w-1.5 h-1.5 bg-[#C4C7C5] rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-                      <div className="w-1.5 h-1.5 bg-[#C4C7C5] rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
+          <AnimatePresence mode="wait">
+            {tab === "chat" && (
+              <ChatTab 
+                key="chat"
+                messages={messages} 
+                input={input} 
+                setInput={setInput} 
+                isLoading={isLoading} 
+                isRecording={isRecording} 
+                handleSend={handleSend} 
+                startRecording={startRecording} 
+                stopRecording={stopRecording} 
+                speak={speak} 
+                messagesEndRef={messagesEndRef} 
+              />
+            )}
 
-              {/* Chat Input (Material You Pill) */}
-              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-[#111318] via-[#111318] to-transparent">
-                <div className="flex items-end gap-2 bg-[#1E2025] rounded-[28px] p-1.5 shadow-lg">
-                  <button
-                    onClick={isRecording ? stopRecording : startRecording}
-                    className={`p-3 rounded-full flex-shrink-0 transition-all duration-300 ${
-                      isRecording ? "bg-[#FFB4AB] text-[#690005]" : "text-[#C4C7C5] hover:bg-[#282A2F]"
-                    }`}
-                  >
-                    {isRecording ? <Square className="w-5 h-5 fill-current" /> : <Mic className="w-5 h-5" />}
-                  </button>
-                  
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSend()}
-                    placeholder={isRecording ? "Listening..." : "Message Atlas..."}
-                    className="flex-1 bg-transparent py-3 px-2 focus:outline-none text-sm text-[#E2E2E2] placeholder-[#C4C7C5]"
-                  />
-                  
-                  <button
-                    onClick={() => !isLoading && handleSend()}
-                    disabled={!input.trim() || isLoading}
-                    className="p-3 rounded-full bg-[#93D7B7] text-[#003822] disabled:bg-[#282A2F] disabled:text-[#C4C7C5] transition-colors"
-                  >
-                    <Send className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+            {tab === "voice" && (
+              <VoiceTab 
+                key="voice"
+                isCallActive={isCallActive} 
+                isConnecting={isConnecting} 
+                isModelSpeaking={isModelSpeaking} 
+                isUserSpeaking={isUserSpeaking} 
+                transcript={transcript} 
+                startCall={startCall} 
+                endCall={endCall} 
+              />
+            )}
 
-          {/* VOICE TAB */}
-          {tab === "voice" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 overflow-hidden">
-              <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
-                <div className={`w-64 h-64 rounded-full bg-[#93D7B7] blur-3xl transition-all duration-1000 ${isModelSpeaking ? 'scale-150 opacity-40' : 'scale-100 opacity-20'}`}></div>
-                <div className={`absolute w-64 h-64 rounded-full bg-[#A8C7FA] blur-3xl transition-all duration-1000 ${isUserSpeaking ? 'scale-150 opacity-40' : 'scale-100 opacity-20'}`}></div>
-              </div>
-
-              <div className="relative z-10 flex flex-col items-center w-full max-w-xs">
-                <div className="relative mb-12">
-                  <div className={`w-36 h-36 rounded-full flex items-center justify-center transition-all duration-500 ${
-                    isCallActive 
-                      ? isModelSpeaking 
-                        ? 'bg-[#93D7B7] shadow-[0_0_60px_rgba(147,215,183,0.4)] scale-110' 
-                        : 'bg-[#1E2025] border-2 border-[#93D7B7]/50 shadow-[0_0_30px_rgba(147,215,183,0.1)]'
-                      : 'bg-[#1E2025] border border-[#282A2F]'
-                  }`}>
-                    <Stethoscope className={`w-14 h-14 ${isCallActive && isModelSpeaking ? 'text-[#003822]' : 'text-[#93D7B7]'}`} />
-                  </div>
-                  
-                  {isCallActive && (
-                    <div className={`absolute -bottom-2 -right-2 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
-                      isUserSpeaking ? 'bg-[#A8C7FA] shadow-[0_0_20px_rgba(168,199,250,0.5)] scale-110' : 'bg-[#282A2F] border border-[#1E2025]'
-                    }`}>
-                      <Mic className={`w-5 h-5 ${isUserSpeaking ? 'text-[#062E6F]' : 'text-[#C4C7C5]'}`} />
-                    </div>
-                  )}
-                </div>
-
-                <h2 className="text-2xl font-normal mb-2">Atlas Voice</h2>
-                <p className="text-[#C4C7C5] text-sm mb-8 h-6">
-                  {isConnecting ? "Connecting..." : 
-                   isCallActive ? (isModelSpeaking ? "Atlas is speaking..." : "Listening...") : 
-                   "Ready to practice speaking?"}
-                </p>
-
-                <div className="w-full h-24 mb-12 flex items-center justify-center text-center">
-                  <p className="text-[#E2E2E2] text-sm line-clamp-3 px-4">
-                    {transcript}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-center gap-6">
-                  {!isCallActive ? (
-                    <button
-                      onClick={startCall}
-                      disabled={isConnecting}
-                      className="w-20 h-20 rounded-[28px] bg-[#93D7B7] hover:bg-[#AEEFD0] flex items-center justify-center shadow-lg transition-transform hover:scale-105 disabled:opacity-50"
-                    >
-                      <Phone className="w-8 h-8 text-[#003822] fill-current" />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={endCall}
-                      className="w-20 h-20 rounded-[28px] bg-[#FFB4AB] hover:bg-[#FFDAD6] flex items-center justify-center shadow-lg transition-transform hover:scale-105"
-                    >
-                      <PhoneOff className="w-8 h-8 text-[#690005] fill-current" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* PRACTICE TAB */}
-          {tab === "practice" && (
-            <div className="absolute inset-0 overflow-y-auto p-5 pb-24">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-full bg-[#A8C7FA] flex items-center justify-center">
-                  <BrainCircuit className="w-5 h-5 text-[#062E6F]" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-normal">Daily Practice</h2>
-                  <p className="text-xs text-[#C4C7C5]">Sports Medicine Scenarios</p>
-                </div>
-              </div>
-
-              {!currentExercise && !exerciseLoading && !exerciseFeedback && (
-                <div className="bg-[#1E2025] rounded-[28px] p-8 text-center flex flex-col items-center gap-4">
-                  <Trophy className="w-12 h-12 text-[#93D7B7] mb-2" />
-                  <h3 className="text-lg font-medium">Ready for a challenge?</h3>
-                  <p className="text-sm text-[#C4C7C5] mb-4">Complete a quick medical English exercise to earn 25 XP.</p>
-                  <button 
-                    onClick={generateExercise}
-                    className="bg-[#93D7B7] text-[#003822] px-6 py-3 rounded-full font-medium flex items-center gap-2 hover:bg-[#AEEFD0] transition-colors"
-                  >
-                    Start Exercise <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-
-              {exerciseLoading && (
-                <div className="bg-[#1E2025] rounded-[28px] p-8 flex flex-col items-center justify-center gap-4 min-h-[300px]">
-                  <div className="w-8 h-8 border-4 border-[#334B38] border-t-[#93D7B7] rounded-full animate-spin"></div>
-                  <p className="text-[#C4C7C5] text-sm">Generating medical scenario...</p>
-                </div>
-              )}
-
-              {currentExercise && !exerciseFeedback && (
-                <div className="bg-[#1E2025] rounded-[28px] p-6 flex flex-col gap-6">
-                  <div className="inline-block bg-[#334B38] text-[#A8E5B6] px-3 py-1 rounded-full text-xs font-medium self-start uppercase tracking-wider">
-                    {currentExercise.type === 'multiple_choice' ? 'Multiple Choice' : 'Fill in the Blank'}
-                  </div>
-                  
-                  <p className="text-lg leading-relaxed">{currentExercise.question}</p>
-
-                  {currentExercise.type === 'multiple_choice' ? (
-                    <div className="flex flex-col gap-3">
-                      {currentExercise.options.map((opt: string, i: number) => (
-                        <button
-                          key={i}
-                          onClick={() => checkAnswer(opt)}
-                          className="bg-[#282A2F] hover:bg-[#334B38] text-[#E2E2E2] p-4 rounded-2xl text-left transition-colors border border-transparent hover:border-[#93D7B7]/30"
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-4">
-                      <input
-                        type="text"
-                        value={exerciseAnswer}
-                        onChange={(e) => setExerciseAnswer(e.target.value)}
-                        placeholder="Type the missing word..."
-                        className="bg-[#282A2F] text-[#E2E2E2] p-4 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-[#93D7B7] placeholder-[#C4C7C5]"
-                      />
-                      <button
-                        onClick={() => checkAnswer(exerciseAnswer)}
-                        disabled={!exerciseAnswer.trim()}
-                        className="bg-[#93D7B7] text-[#003822] p-4 rounded-full font-medium disabled:bg-[#282A2F] disabled:text-[#C4C7C5] transition-colors"
-                      >
-                        Submit Answer
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {exerciseFeedback && (
-                <div className={`rounded-[28px] p-6 flex flex-col gap-4 ${exerciseFeedback.isCorrect ? 'bg-[#334B38]' : 'bg-[#690005]/40'}`}>
-                  <div className="flex items-center gap-3">
-                    {exerciseFeedback.isCorrect ? (
-                      <CheckCircle className="w-8 h-8 text-[#93D7B7]" />
-                    ) : (
-                      <XCircle className="w-8 h-8 text-[#FFB4AB]" />
-                    )}
-                    <h3 className={`text-xl font-medium ${exerciseFeedback.isCorrect ? 'text-[#A8E5B6]' : 'text-[#FFDAD6]'}`}>
-                      {exerciseFeedback.isCorrect ? 'Excellent! +25 XP' : 'Not quite right'}
-                    </h3>
-                  </div>
-                  
-                  <div className="bg-[#111318]/50 p-4 rounded-2xl">
-                    <p className="text-sm text-[#E2E2E2] leading-relaxed">{exerciseFeedback.explanation}</p>
-                  </div>
-
-                  <button
-                    onClick={generateExercise}
-                    className={`mt-2 p-4 rounded-full font-medium transition-colors ${
-                      exerciseFeedback.isCorrect 
-                        ? 'bg-[#93D7B7] text-[#003822] hover:bg-[#AEEFD0]' 
-                        : 'bg-[#FFB4AB] text-[#690005] hover:bg-[#FFDAD6]'
-                    }`}
-                  >
-                    Next Exercise
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+            {tab === "practice" && (
+              <PracticeTab 
+                key="practice"
+                currentExercise={currentExercise} 
+                exerciseLoading={exerciseLoading} 
+                exerciseFeedback={exerciseFeedback} 
+                exerciseAnswer={exerciseAnswer} 
+                setExerciseAnswer={setExerciseAnswer} 
+                generateExercise={generateExercise} 
+                checkAnswer={checkAnswer} 
+              />
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Material You Bottom Navigation */}
-        <nav className="bg-[#1E2025] h-20 flex items-center justify-around px-2 pb-2 shrink-0 z-20">
-          <NavItem id="chat" icon={<MessageSquare className="w-5 h-5" />} label="Chat" />
-          <NavItem id="voice" icon={<Phone className="w-5 h-5" />} label="Voice" />
-          <NavItem id="practice" icon={<ListTodo className="w-5 h-5" />} label="Practice" />
-        </nav>
+        <BottomNav tab={tab} setTab={setTab} isCallActive={isCallActive} endCall={endCall} />
 
       </div>
     </div>
