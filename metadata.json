@@ -1,0 +1,5 @@
+{
+  "name": "Atlas - English Tutor",
+  "description": "AI-powered personalized English tutor for sports medicine professionals.",
+  "requestFramePermissions": ["microphone"]
+}
