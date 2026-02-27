@@ -83,16 +83,45 @@ export default function App() {
   const [tab, setTab] = useState<"chat" | "voice" | "practice">("chat");
   
   // Progression State
-  const [level, setLevel] = useState(1);
-  const [xp, setXp] = useState(0);
-  const [streak, setStreak] = useState(3); // Example streak
+  const [level, setLevel] = useState(() => {
+    const saved = localStorage.getItem("atlas_level");
+    return saved ? parseInt(saved, 10) : 1;
+  });
+  const [xp, setXp] = useState(() => {
+    const saved = localStorage.getItem("atlas_xp");
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [streak, setStreak] = useState(() => {
+    const saved = localStorage.getItem("atlas_streak");
+    return saved ? parseInt(saved, 10) : 3;
+  });
   const xpToNextLevel = level * 100;
 
+  useEffect(() => {
+    localStorage.setItem("atlas_level", level.toString());
+    localStorage.setItem("atlas_xp", xp.toString());
+    localStorage.setItem("atlas_streak", streak.toString());
+  }, [level, xp, streak]);
+
   // Chat State
-  const [messages, setMessages] = useState<{ role: "user" | "model"; text: string }[]>([]);
+  const [messages, setMessages] = useState<{ role: "user" | "model"; text: string }[]>(() => {
+    const saved = localStorage.getItem("atlas_messages");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved messages", e);
+      }
+    }
+    return [];
+  });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("atlas_messages", JSON.stringify(messages));
+  }, [messages]);
 
   // Voice Mode State
   const [isCallActive, setIsCallActive] = useState(false);
@@ -110,6 +139,7 @@ export default function App() {
   const chatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const initializedRef = useRef(false);
   
   // Live API Refs
   const liveSessionRef = useRef<any>(null);
@@ -121,15 +151,34 @@ export default function App() {
   const animationFrameRef = useRef<number>(0);
 
   useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    const saved = localStorage.getItem("atlas_messages");
+    let initialMessages: { role: "user" | "model"; text: string }[] = [];
+    if (saved) {
+      try {
+        initialMessages = JSON.parse(saved);
+      } catch (e) {}
+    }
+
+    const history = initialMessages.map(m => ({
+      role: m.role,
+      parts: [{ text: m.text }]
+    }));
+
     chatRef.current = ai.chats.create({
       model: "gemini-3-flash-preview",
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.7,
       },
+      history: history.length > 0 ? history : undefined,
     });
 
-    handleSend("Ciao Atlas, sono pronto per iniziare.", true);
+    if (initialMessages.length === 0) {
+      handleSend("Ciao Atlas, sono pronto per iniziare.", true);
+    }
     
     return () => {
       endCall();
@@ -215,9 +264,14 @@ export default function App() {
 
     try {
       if (!chatRef.current) {
+        const history = messages.map(m => ({
+          role: m.role,
+          parts: [{ text: m.text }]
+        }));
         chatRef.current = ai.chats.create({
           model: "gemini-3-flash-preview",
           config: { systemInstruction: SYSTEM_INSTRUCTION, temperature: 0.7 },
+          history: history.length > 0 ? history : undefined,
         });
       }
 
