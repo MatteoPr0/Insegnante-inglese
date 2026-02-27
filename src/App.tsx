@@ -19,7 +19,8 @@ import {
 import { GoogleGenAI, LiveServerMessage, Modality, Type } from "@google/genai";
 import ReactMarkdown from "react-markdown";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const apiKey = process.env.GEMINI_API_KEY || "missing_api_key";
+const ai = new GoogleGenAI({ apiKey });
 
 const SYSTEM_INSTRUCTION = `Sei "Atlas", un tutor di inglese AI ultra-personalizzato. Il tuo obiettivo è sostituire Duolingo offrendo un apprendimento adattivo, conversazionale e basato sulla pratica reale.
 
